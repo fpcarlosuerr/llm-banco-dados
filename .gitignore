@@ -1,0 +1,4 @@
+llm_chat_project/llm_chat_project/__init__.py
+llm_chat_project/chat_app/__init__.py
+llm_chat_project/chat_app/migrations/__init__.py
+llm_chat_project/.env

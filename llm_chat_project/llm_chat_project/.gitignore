@@ -1,0 +1,46 @@
+# Bytecode e arquivos cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambientes virtuais
+venv/
+.env/
+.venv/
+env/
+ENV/
+
+# Configurações de IDEs
+.vscode/
+.idea/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de log
+*.log
+
+# Arquivos temporários
+*.tmp
+*.swp
+
+# Credenciais (não colocar chaves diretamente no código)
+*.env
+*.secret
+../.env
+# pip
+pip-log.txt
+
+# Jupyter (se usar no futuro)
+.ipynb_checkpoints/
+
+# Mac OS
+*.DS_Store
+
+# Arquivos de cache do LangChain ou Groq (caso algum seja gerado)
+.cache/
+
+db.sqlite3
+.db.sqlite3
+.env

@@ -1,0 +1,135 @@
+<!DOCTYPE html> 
+<html lang="pt-br"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Chat com LLM sobre Pessoas</title> 
+    <style> 
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; } 
+        .chat-container { max-width: 700px; margin: auto; background-color: #fff; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; } 
+        h2 { color: #0056b3; } 
+        .chat-box { height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 15px; background-color: #f9f9f9; border-radius: 5px; } 
+        .message { margin-bottom: 12px; padding: 10px; border-radius: 8px; line-height: 1.4; } 
+        .user-message { background-color: #d1e7dd; text-align: right; margin-left: 40px; } 
+        .bot-message { background-color: #e2e3e5; margin-right: 40px; } 
+        .bot-message strong { color: #0056b3; } 
+        .bot-message pre {  
+            white-space: pre-wrap;  
+            word-wrap: break-word;  
+            background-color: #eee;  
+            padding: 8px;  
+            border-radius: 4px;  
+            font-size: 0.9em;  
+            margin-top: 5px; 
+            border: 1px solid #ccc; 
+        } 
+        .error-message { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; } 
+        .input-area { display: flex; } 
+        input[type="text"] {  
+            flex-grow: 1;  
+            padding: 12px;  
+            border: 1px solid #ccc;  
+            border-radius: 5px 0 0 5px; 
+            font-size: 1em; 
+        } 
+        button {  
+            padding: 12px 18px;  
+            background-color: #007bff;  
+            color: white;  
+            border: none;  
+            cursor: pointer;  
+            border-radius: 0 5px 5px 0; 
+            font-size: 1em; 
+        } 
+        button:hover { background-color: #0056b3; } 
+        .loading { text-align: center; color: #777; font-style: italic; } 
+        .info-text { font-size: 0.9em; color: #555; margin-bottom: 15px; } 
+    </style> 
+</head> 
+<body> 
+    <div class="chat-container"> 
+        <h2>Consultar Dados do Modelo 'Pessoa'</h2> 
+        <p class="info-text"> 
+            Exemplos: "quantas pessoas existem?", "liste pessoas de Curitiba",  
+            "quem tem mais de 30 anos?", "nome e email das pessoas com menos de 25 anos", 
+            "pessoas cadastradas antes de 2023-01-01" 
+        </p> 
+        <div class="chat-box" id="chatBox"> 
+            <!-- Mensagens do chat aqui --> 
+        </div> 
+        <div class="input-area"> 
+            <input type="text" id="userInput" placeholder="Digite sua consulta em linguagem natural..." onkeypress="handleKeyPress(event)"> 
+            <button onclick="sendMessage()">Enviar</button> 
+        </div> 
+    </div> 
+ 
+    <script> 
+        const chatBox = document.getElementById('chatBox'); 
+        const userInput = document.getElementById('userInput'); 
+ 
+        function handleKeyPress(event) { 
+            if (event.key === "Enter") { 
+                sendMessage(); 
+            } 
+        } 
+ 
+        async function sendMessage() { 
+            const messageText = userInput.value.trim(); 
+            if (!messageText) return; 
+ 
+            appendMessage(messageText, 'user-message'); 
+            userInput.value = ''; 
+            const loadingDiv = appendMessage("<i>Processando...</i>", 'loading', true); 
+ 
+            try { 
+                const response = await fetch("{% url 'process_query' %}", { 
+                    method: 'POST', 
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        // 'X-CSRFToken': '{{ csrf_token }}' // Necessário se CSRF não estiver isento na view e você não estiver usando @csrf_exempt 
+                    }, 
+                    body: JSON.stringify({ message: messageText }) 
+                }); 
+ 
+                if (loadingDiv) loadingDiv.remove(); 
+ 
+                const data = await response.json(); // Tenta parsear JSON mesmo se não for ok, para pegar o erro do backend 
+ 
+                if (!response.ok) { 
+                    appendMessage(`<strong>Erro do Servidor:</strong><pre>${data.error || response.statusText}</pre>`, 'bot-message error-message', true); 
+                    if (data.orm_query && data.orm_query !== "N/A") { 
+                         appendMessage(`<strong>Query Tentada:</strong><pre>${data.orm_query}</pre>`, 'bot-message', true); 
+                    } 
+                    return; 
+                } 
+                 
+                if (data.error) { // Erro específico retornado pela view (ex: erro na execução da query) 
+                    appendMessage(`<strong>Erro na Consulta:</strong><pre>${data.error}</pre>`, 'bot-message error-message', true); 
+                    appendMessage(`<strong>Query ORM Gerada:</strong><pre>${data.orm_query}</pre>`, 'bot-message', true); 
+                } else { 
+                    let botResponse = `<strong>Query ORM Gerada:</strong><pre>${data.orm_query}</pre>`; 
+                    botResponse += `<strong>Resultado:</strong><pre>${JSON.stringify(data.result, null, 2)}</pre>`; 
+                    appendMessage(botResponse, 'bot-message', true); 
+                } 
+ 
+            } catch (error) { 
+                if (loadingDiv) loadingDiv.remove(); 
+                appendMessage(`<strong>Erro na comunicação com o servidor:</strong><pre>${error.message}</pre>`, 'bot-message error-message', true); 
+            } 
+        } 
+ 
+        function appendMessage(content, className, isHtml = false) { 
+            const messageDiv = document.createElement('div'); 
+            messageDiv.classList.add('message', className); 
+            if (isHtml) { 
+                messageDiv.innerHTML = content; 
+            } else { 
+                messageDiv.textContent = content; 
+            } 
+            chatBox.appendChild(messageDiv); 
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll 
+            return messageDiv; // Retorna o elemento para poder removê-lo (ex: loading) 
+        } 
+    </script> 
+</body> 
+</html> 
