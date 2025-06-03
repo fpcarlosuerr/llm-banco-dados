@@ -127,3 +127,4 @@ import os
 from dotenv import load_dotenv 
 load_dotenv() # Carrega variáveis do arquivo .env 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')

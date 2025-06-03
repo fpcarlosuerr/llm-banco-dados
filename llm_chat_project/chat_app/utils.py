@@ -2,8 +2,7 @@ import openai
 from django.conf import settings 
 from django.db.models import Q 
 from .models import Pessoa # Importante para o escopo do eval 
- 
-openai.api_key = settings.OPENAI_API_KEY 
+from google import genai
  
 def get_pessoa_model_fields_info(): 
     """Retorna um dicionário com nomes de campos e tipos simplificados para o modelo Pessoa.""" 
@@ -88,6 +87,32 @@ def get_llm_prompt(user_query):
     
     Query ORM: 
     """ 
+ 
+def get_gemini_response(prompt_text):
+    try:         
+        client = genai.Client(
+            api_key=settings.GEMINI_API_KEY,
+        ) # Para GEMINI >= 1.0.0 
+        # response = openai.ChatCompletion.create( 
+        response = client.models.generate_content( # Certifique-se de que esta é a chamada correta para sua versão da lib GEMINI 
+            model="gemini-2.0-flash",
+            contents=prompt_text
+            #temperature=0.2, # Baixa temperatura para respostas mais determinísticas 
+            #max_tokens=150 
+        ) 
+        orm_query_string = response.text
+        # Adicionar uma verificação simples para garantir que é uma linha de código 
+        if '\n' in orm_query_string or not orm_query_string.startswith("Pessoa.objects."): 
+            # Tenta pegar a primeira linha que parece ser a query 
+            lines = [line for line in orm_query_string.split('\n') if line.strip().startswith("Pessoa.objects.")] 
+            if lines: 
+                orm_query_string = lines[0].strip() 
+            else: 
+                raise ValueError("LLM não retornou uma query ORM válida no formato esperado.") 
+        return orm_query_string 
+    except Exception as e: 
+        print(f"Erro na API GeminiAI: {e}") 
+        return None # Ou uma string de erro específica
  
 def get_openai_response(prompt_text): 
     try:         

@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt # Para simplificar, desabilitar CSRF para esta view AJAX 
 import json 
 # Certifique-se de que o import está correto (utils.py ou api.py) 
-from .utils import get_llm_prompt, get_openai_response, execute_orm_query 
+from .utils import get_gemini_response, get_llm_prompt, get_openai_response, execute_orm_query 
 # Se você nomeou o arquivo como api.py, use: 
 # from .api import get_llm_prompt, get_openai_response, execute_orm_query 
  
@@ -24,7 +24,8 @@ def process_query(request):
             prompt = get_llm_prompt(user_message) 
              
             # 2. Obter query ORM do LLM 
-            orm_query_string = get_openai_response(prompt) 
+            #orm_query_string = get_openai_response(prompt) 
+            orm_query_string = get_gemini_response(prompt) 
             if not orm_query_string or "Erro:" in str(orm_query_string): # Adicionado str() para segurança 
                 error_message = orm_query_string if isinstance(orm_query_string, str) else 'Falha ao gerar query ORM.' 
                 return JsonResponse({'error': error_message, 'orm_query': orm_query_string if isinstance(orm_query_string, str) else "N/A"}) 
